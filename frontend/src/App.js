@@ -27,6 +27,16 @@ import AdminContacts from './pages/admin/AdminContacts';
 import Header from './components/common/Header';
 import Footer from './components/common/Footer';
 
+// ======================
+// 404 Page Component
+// ======================
+const NotFound = () => (
+  <div style={{ textAlign: 'center', marginTop: '100px' }}>
+    <h1>404 - Page Not Found</h1>
+    <p>The page you are looking for does not exist.</p>
+  </div>
+);
+
 function App() {
   const appStyles = {
     minHeight: '100vh',
@@ -40,7 +50,9 @@ function App() {
         <Router>
           <div style={appStyles}>
             <Routes>
+              {/* ====================== */}
               {/* User Routes */}
+              {/* ====================== */}
               <Route path="/" element={<><Header /><Home /><Footer /></>} />
               <Route path="/home" element={<Navigate to="/" />} />
               <Route path="/shop" element={<><Header /><Shop /><Footer /></>} />
@@ -54,16 +66,19 @@ function App() {
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
 
+              {/* ====================== */}
               {/* Admin Routes */}
+              {/* ====================== */}
               <Route path="/admin/login" element={<AdminLogin />} />
               <Route path="/admin/dashboard" element={<AdminDashboard />} />
               <Route path="/admin/products" element={<AdminProducts />} />
               <Route path="/admin/orders" element={<AdminOrders />} />
               <Route path="/admin/contacts" element={<AdminContacts />} />
 
-              {/* Default redirect */}
+              {/* ====================== */}
+              {/* Catch-all 404 */}
+              {/* ====================== */}
               <Route path="*" element={<NotFound />} />
-
             </Routes>
           </div>
         </Router>
