@@ -296,30 +296,30 @@ const Checkout = () => {
                             <div>
                                 <strong>{item.product.name}</strong>
                                 <br />
-                                <small>Qty: {item.quantity} × ${item.product.price}</small>
+                                <small>Qty: {item.quantity} × LKR {item.product.price}</small>
                             </div>
-                            <div>${(item.product.price * item.quantity).toFixed(2)}</div>
+                            <div>LKR {(item.product.price * item.quantity).toFixed(2)}</div>
                         </div>
                     ))}
 
                     <div style={styles.orderItem}>
                         <span>Subtotal:</span>
-                        <span>${subtotal.toFixed(2)}</span>
+                        <span>LKR {subtotal.toFixed(2)}</span>
                     </div>
 
                     <div style={styles.orderItem}>
                         <span>Shipping:</span>
-                        <span>${shipping.toFixed(2)}</span>
+                        <span>LKR {shipping.toFixed(2)}</span>
                     </div>
 
                     <div style={styles.orderItem}>
                         <span>Tax:</span>
-                        <span>${tax.toFixed(2)}</span>
+                        <span>LKR {tax.toFixed(2)}</span>
                     </div>
 
                     <div style={styles.total}>
                         <span>Total:</span>
-                        <span>${total.toFixed(2)}</span>
+                        <span>LKR {total.toFixed(2)}</span>
                     </div>
                 </div>
             </div>

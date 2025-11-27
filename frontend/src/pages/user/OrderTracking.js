@@ -232,7 +232,7 @@ const OrderTracking = () => {
                         <h3>Order Details</h3>
                         <p><strong>Order Date:</strong> {new Date(order.createdAt).toLocaleDateString()}</p>
                         <p><strong>Payment Method:</strong> {order.paymentMethod}</p>
-                        <p><strong>Total Amount:</strong> ${order.totalAmount.toFixed(2)}</p>
+                        <p><strong>Total Amount:</strong> LKR {order.totalAmount.toFixed(2)}</p>
 
                         <h4 style={{ marginTop: '1rem' }}>Billing Address</h4>
                         <p>{order.billing?.address}</p>
@@ -244,7 +244,7 @@ const OrderTracking = () => {
                             {order.items.map((item, index) => (
                                 <div key={index} style={styles.item}>
                                     <span>{item.product?.name} × {item.quantity}</span>
-                                    <span>${(item.price * item.quantity).toFixed(2)}</span>
+                                    <span>LKR {(item.price * item.quantity).toFixed(2)}</span>
                                 </div>
                             ))}
                         </div>

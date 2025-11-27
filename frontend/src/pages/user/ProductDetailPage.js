@@ -516,7 +516,7 @@ const ProductDetailPage = () => {
                     <div style={styles.mainImageContainer}>
                         {product.images && product.images.length > 0 ? (
                             <img
-                                src={`http://localhost:5000/uploads/${product.images[selectedImage]}`}
+                                src={`https://tfs-clothing.onrender.com/uploads/${product.images[selectedImage]}`}
                                 alt={product.name}
                                 style={styles.mainImage}
                                 onLoad={(e) => {
@@ -561,7 +561,7 @@ const ProductDetailPage = () => {
                                     className="thumbnail"
                                 >
                                     <img
-                                        src={`http://localhost:5000/uploads/${image}`}
+                                        src={`https://tfs-clothing.onrender.com/uploads/${image}`}
                                         alt={`${product.name} ${index + 1}`}
                                         style={styles.thumbnailImage}
                                     />

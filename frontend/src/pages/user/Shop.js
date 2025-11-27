@@ -387,7 +387,7 @@ const Shop = () => {
                             <div style={styles.productImage}>
                                 {product.images && product.images.length > 0 ? (
                                     <img
-                                        src={`http://localhost:5000/uploads/${product.images[0]}`}
+                                        src={`https://tfs-clothing.onrender.com/uploads/${product.images[0]}`}
                                         alt={product.name}
                                         style={getImageStyle(index)}
                                         onError={(e) => {

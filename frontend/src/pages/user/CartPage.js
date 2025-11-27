@@ -341,7 +341,7 @@ const CartPage = () => {
                             <div style={getResponsiveStyle(styles.itemImage, breakpoint)}>
                                 {item.product.images && item.product.images.length > 0 ? (
                                     <img
-                                        src={`http://localhost:5000/uploads/${item.product.images[0]}`}
+                                        src={`https://tfs-clothing.onrender.com/uploads/${item.product.images[0]}`}
                                         alt={item.product.name}
                                         style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '5px' }}
                                     />
