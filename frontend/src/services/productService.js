@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5000/api/products';
+const API_URL = 'https://tfs-clothing.onrender.com/api/products';
 
 // Get token from localStorage
 const getAuthToken = () => {

@@ -66,18 +66,14 @@ function App() {
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
 
-              {/* ====================== */}
-              {/* Admin Routes */}
-              {/* ====================== */}
+         
               <Route path="/admin/login" element={<AdminLogin />} />
               <Route path="/admin/dashboard" element={<AdminDashboard />} />
               <Route path="/admin/products" element={<AdminProducts />} />
               <Route path="/admin/orders" element={<AdminOrders />} />
               <Route path="/admin/contacts" element={<AdminContacts />} />
 
-              {/* ====================== */}
-              {/* Catch-all 404 */}
-              {/* ====================== */}
+   
               <Route path="*" element={<NotFound />} />
             </Routes>
           </div>
