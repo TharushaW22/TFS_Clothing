@@ -62,7 +62,8 @@ function App() {
               <Route path="/admin/contacts" element={<AdminContacts />} />
 
               {/* Default redirect */}
-              <Route path="*" element={<Navigate to="/" />} />
+              <Route path="*" element={<NotFound />} />
+
             </Routes>
           </div>
         </Router>
