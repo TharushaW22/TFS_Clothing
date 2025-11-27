@@ -1,0 +1,9 @@
+:root {
+    --admin-primary: #667eea;
+    --admin-bg: #f8f9fa;
+}
+
+body {
+    background: var(--admin-bg);
+    font-family: 'Segoe UI', sans-serif;
+}
