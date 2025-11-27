@@ -40,7 +40,7 @@ const AppContent = () => {
       <AdminSidebar />
       <div style={{ flex: 1, marginLeft: '280px' }}>
         <AdminHeader />
-        <main style={{ padding: '1rem' }}>  {/* Added padding for content */}
+        <main style={{ padding: '1rem' }}>
           <Routes>
             <Route path="/" element={<AdminDashboard />} />
             <Route path="/orders" element={<AdminOrders />} />
@@ -55,10 +55,14 @@ const AppContent = () => {
 };
 
 const App = () => {
+  // Dynamic basename: Use /admin if URL starts with it, else root
+  const basename = window.location.pathname.startsWith('/admin') ? '/admin' : '/';
+  
   return (
-    <Router basename={process.env.NODE_ENV === 'production' ? '/admin' : '/'}>  {/* Dynamic basename for subpath deploys */}
+    <Router basename={basename}>
       <Routes>
         <Route path="/login" element={<AdminLogin />} />
+        <Route path="/" element={<Navigate to="/login" replace />} />  {/* Redirect root to login */}
         <Route path="/*" element={
           <ProtectedRoute>
             <AppContent />
