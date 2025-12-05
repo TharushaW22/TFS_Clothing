@@ -1,6 +1,27 @@
 const Product = require('../models/Product');
+const cloudinary = require('cloudinary').v2;  // NEW: For uploading to Cloudinary
 
-// Get all products
+// NEW: Helper to upload a single image buffer to Cloudinary
+const uploadToCloudinary = (buffer) => {
+    return new Promise((resolve, reject) => {
+        cloudinary.uploader.upload_stream(
+            { 
+                folder: 'tfs-clothing',  // Organize in your app's folder
+                transformation: [{ width: 800, height: 800, crop: 'limit' }]  // Optional: Auto-resize
+            },
+            (error, result) => {
+                if (error) {
+                    console.error('Cloudinary upload error:', error);
+                    reject(error);
+                } else {
+                    resolve(result.secure_url);  // Full CDN URL (e.g., https://res.cloudinary.com/d10uevj/image/upload/...)
+                }
+            }
+        ).end(buffer);  // Stream the buffer
+    });
+};
+
+// Get all products (unchanged)
 const getProducts = async (req, res) => {
     try {
         const { category, search } = req.query;
@@ -15,7 +36,7 @@ const getProducts = async (req, res) => {
     }
 };
 
-// Get single product by ID
+// Get single product by ID (unchanged)
 const getProductById = async (req, res) => {
     try {
         const product = await Product.findById(req.params.id);
@@ -28,7 +49,7 @@ const getProductById = async (req, res) => {
     }
 };
 
-// Create product - FIXED VERSION
+// Create product - UPDATED: Upload images to Cloudinary
 const createProduct = async (req, res) => {
     try {
         console.log('=== CREATE PRODUCT REQUEST ===');
@@ -64,9 +85,15 @@ const createProduct = async (req, res) => {
             }
         }
 
-        // Handle images if uploaded
+        // NEW: Handle images - Upload to Cloudinary if files provided
         if (req.files && req.files.length > 0) {
-            productData.images = req.files.map(file => file.filename);
+            console.log(`Uploading ${req.files.length} images to Cloudinary...`);
+            const uploadPromises = req.files.map(file => uploadToCloudinary(file.buffer));
+            const imageUrls = await Promise.all(uploadPromises);
+            productData.images = imageUrls;  // Save array of full URLs
+            console.log('Cloudinary URLs:', imageUrls);
+        } else {
+            return res.status(400).json({ message: 'At least one image is required' });
         }
 
         console.log('Final product data:', productData);
@@ -86,7 +113,7 @@ const createProduct = async (req, res) => {
     }
 };
 
-// Update product - FIXED VERSION
+// Update product - UPDATED: Upload new images to Cloudinary
 const updateProduct = async (req, res) => {
     try {
         console.log('=== UPDATE PRODUCT REQUEST ===');
@@ -129,11 +156,15 @@ const updateProduct = async (req, res) => {
             updateData.sizes = existingProduct.sizes;
         }
 
-        // Handle images
+        // NEW: Handle new images - Upload to Cloudinary and append/replace
         if (req.files && req.files.length > 0) {
-            updateData.images = req.files.map(file => file.filename);
+            console.log(`Uploading ${req.files.length} new images to Cloudinary...`);
+            const uploadPromises = req.files.map(file => uploadToCloudinary(file.buffer));
+            const newImageUrls = await Promise.all(uploadPromises);
+            console.log('New Cloudinary URLs:', newImageUrls);
+            updateData.images = [...existingProduct.images, ...newImageUrls];  // Append new ones; change to = newImageUrls to replace
         } else {
-            // Keep existing images if no new images uploaded
+            // Keep existing images if no new ones
             updateData.images = existingProduct.images;
         }
 
@@ -165,13 +196,20 @@ const updateProduct = async (req, res) => {
     }
 };
 
-// Delete product
+// Delete product (unchanged, but optional Cloudinary cleanup commented)
 const deleteProduct = async (req, res) => {
     try {
         const product = await Product.findByIdAndDelete(req.params.id);
         if (!product) {
             return res.status(404).json({ message: 'Product not found' });
         }
+
+        // OPTIONAL: Delete images from Cloudinary (uncomment if needed)
+        // for (let url of product.images) {
+        //     const publicId = cloudinary.utils.extractPublicId(url);
+        //     await cloudinary.uploader.destroy(publicId);
+        // }
+
         res.json({ message: 'Product deleted successfully' });
     } catch (error) {
         res.status(500).json({ message: error.message });

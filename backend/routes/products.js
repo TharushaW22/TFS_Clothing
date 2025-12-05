@@ -1,6 +1,6 @@
 const express = require('express');
 const multer = require('multer');
-const path = require('path');
+const cloudinary = require('cloudinary').v2;  // NEW: Import for uploads
 const {
     getProducts,
     getProductById,
@@ -11,16 +11,8 @@ const {
 
 const router = express.Router();
 
-// Configure multer for file uploads
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, 'uploads/');
-    },
-    filename: function (req, file, cb) {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-    }
-});
+// NEW: Multer with MEMORY storage (buffers files for Cloudinary—no disk write)
+const storage = multer.memoryStorage();  // CHANGED: From diskStorage to memoryStorage
 
 const fileFilter = (req, file, cb) => {
     if (file.mimetype.startsWith('image/')) {
@@ -31,14 +23,14 @@ const fileFilter = (req, file, cb) => {
 };
 
 const upload = multer({
-    storage: storage,
+    storage: storage,  // UPDATED
     fileFilter: fileFilter,
     limits: {
         fileSize: 5 * 1024 * 1024 // 5MB limit
     }
 });
 
-// Routes with multer middleware for file uploads
+// Routes (unchanged, but now Multer uses memory for Cloudinary in controllers)
 router.get('/', getProducts);
 router.get('/:id', getProductById);
 router.post('/', upload.array('images', 5), createProduct); // Handle up to 5 images

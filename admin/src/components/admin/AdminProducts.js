@@ -135,17 +135,16 @@ const AdminProducts = () => {
     const totalProducts = products.length;
     const outOfStock = products.filter(p => p.stock === 0).length;
 
-    // Image URL helper with error handling - UPDATED
+    // UPDATED: Image URL helper - Now assumes full URLs from Cloudinary; falls back gracefully
     const getImageUrl = (imageName) => {
         if (!imageName) return null;
-        // If it's already a full URL (from backend), use it directly
-        if (typeof imageName === 'string' && imageName.startsWith('http')) {
+        // Since backend returns full Cloudinary URLs, use directly (or filename for legacy)
+        if (typeof imageName === 'string' && (imageName.startsWith('http') || imageName.includes('cloudinary'))) {
             return imageName;
         }
-        // Otherwise, assume filename and construct URL
-        const url = `https://tfs-clothing.onrender.com/uploads/${imageName}`;
-        console.log('Generated image URL:', url, 'for input:', imageName); // DEBUG: Log URL generation
-        return url;
+        // Legacy fallback (remove once all products updated)
+        console.warn('Legacy filename detected:', imageName, '- Updating recommended');
+        return `https://tfs-clothing.onrender.com/uploads/${imageName}`;
     };
 
     const handleImageError = (e, productName) => {
@@ -560,6 +559,21 @@ const AdminProducts = () => {
             fontSize: '1rem',
             textAlign: 'center',
             borderRadius: '10px'
+        },
+        existingImages: {  // NEW: Styles for existing image previews
+            marginTop: '10px',
+            padding: '10px',
+            background: 'rgba(102, 126, 234, 0.05)',
+            borderRadius: '8px',
+            border: '1px solid rgba(102, 126, 234, 0.2)'
+        },
+        existingImage: {
+            width: '80px',
+            height: '80px',
+            objectFit: 'cover',
+            borderRadius: '8px',
+            marginRight: '10px',
+            marginBottom: '10px'
         }
     };
 
@@ -662,7 +676,7 @@ const AdminProducts = () => {
                                                     alt={product.name}
                                                     style={styles.mainImage}
                                                     onError={(e) => handleImageError(e, product.name)}
-                                                // REMOVED loading="lazy" temporarily to avoid deferral issues
+                                                    loading="lazy"  // RE-ADDED: Safe now with Cloudinary
                                                 />
                                                 <div style={styles.imageThumbs}>
                                                     {product.images.slice(0, 4).map((image, index) => (  // Limit to 4 thumbs
@@ -675,7 +689,7 @@ const AdminProducts = () => {
                                                                 ...(index === 0 ? styles.thumbImageActive : {})
                                                             }}
                                                             onError={(e) => handleImageError(e, `${product.name} thumb`)}
-                                                        // REMOVED loading="lazy" temporarily to avoid deferral issues
+                                                            loading="lazy"  // RE-ADDED: Safe now
                                                         />
                                                     ))}
                                                     {product.images.length > 4 && (
@@ -806,7 +820,7 @@ const AdminProducts = () => {
                                     placeholder="Enter product description..."
                                 />
                             </div>
-                            {/* IMAGE UPLOAD FIELD - ADDED THIS */}
+                            {/* IMAGE UPLOAD FIELD */}
                             <div style={styles.formGroup}>
                                 <label style={styles.label}>Product Images</label>
                                 <input
@@ -819,7 +833,7 @@ const AdminProducts = () => {
                                 {selectedImages.length > 0 && (
                                     <div>
                                         <p style={styles.imageInfo}>
-                                            📸 {selectedImages.length} image(s) selected
+                                            📸 {selectedImages.length} new image(s) selected
                                         </p>
                                         <div style={styles.imagePreview}>
                                             {selectedImages.map((image, index) => (
@@ -833,10 +847,31 @@ const AdminProducts = () => {
                                         </div>
                                     </div>
                                 )}
+                                {/* NEW: Show existing images preview when editing */}
                                 {editingProduct && formData.images && formData.images.length > 0 && (
-                                    <p style={styles.imageInfo}>
-                                        📁 Currently has {formData.images.length} image(s)
-                                    </p>
+                                    <div style={styles.existingImages}>
+                                        <p style={styles.imageInfo}>
+                                            📁 Current images ({formData.images.length}):
+                                        </p>
+                                        <div style={styles.imagePreview}>
+                                            {formData.images.slice(0, 5).map((image, index) => (
+                                                <img
+                                                    key={index}
+                                                    src={getImageUrl(image)}
+                                                    alt={`Current ${index + 1}`}
+                                                    style={styles.existingImage}
+                                                    onError={(e) => handleImageError(e, `${editingProduct.name} current`)}
+                                                    loading="lazy"
+                                                />
+                                            ))}
+                                            {formData.images.length > 5 && (
+                                                <span style={{ ...styles.imageInfo, marginLeft: '10px' }}>+{formData.images.length - 5} more</span>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                                {editingProduct && (!formData.images || formData.images.length === 0) && (
+                                    <p style={styles.imageInfo}>No current images - add new ones above</p>
                                 )}
                             </div>
                             <div style={styles.formActions}>

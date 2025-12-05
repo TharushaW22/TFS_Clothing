@@ -1,4 +1,4 @@
-// Shop.js (Updated)
+// Shop.js (Updated for Cloudinary)
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { productService } from '../../services/productService';
@@ -48,6 +48,9 @@ const Shop = () => {
     };
 
     const categories = ['All', 'Men', 'Women', 'Kids', 'Office', 'Accessories'];
+
+    // NEW: Fallback SVG data URI for broken images (your existing placeholder)
+    const FALLBACK_IMAGE = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjBmMGYwIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg==';
 
     const styles = {
         container: {
@@ -422,11 +425,13 @@ const Shop = () => {
                             <div style={styles.productImage}>
                                 {product.images && product.images.length > 0 ? (
                                     <img
-                                        src={`https://tfs-clothing.onrender.com/uploads/${product.images[0]}`}
+                                        src={product.images[0]}  // UPDATED: Use full Cloudinary URL from API
                                         alt={product.name}
                                         style={getImageStyle(index)}
+                                        loading="lazy"  // NEW: For performance
                                         onError={(e) => {
-                                            e.target.style.display = 'none';
+                                            e.target.src = FALLBACK_IMAGE;  // UPDATED: Set fallback SVG instead of hiding
+                                            e.target.style.display = 'block';  // Keep visible with fallback
                                         }}
                                     />
                                 ) : (
