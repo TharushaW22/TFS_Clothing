@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams, Link, useNavigate } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { productService } from '../../services/productService';
 
 const Shop = () => {
@@ -55,12 +55,12 @@ const Shop = () => {
         navigate(`/product/${productId}`);
     };
 
-    const categories = ['All', 'Men', 'Women', 'Kids', 'Office', 'Accessories'];
-
     const FALLBACK_IMAGE =
         'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjBmMGYwIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg==';
 
-    // ---- STYLES (NO TDZ ERRORS) ----
+    // Force HTTPS helper
+    const secureImage = (url) => url?.replace(/^http:\/\//i, 'https://');
+
     const viewButtonBase = {
         display: 'inline-block',
         padding: '10px 20px',
@@ -173,7 +173,6 @@ const Shop = () => {
                         : 'EXPLORE OUR COMPLETE COLLECTION'}
                 </p>
 
-                {/* Search */}
                 <div style={styles.searchContainer}>
                     <form onSubmit={handleSearch} style={{ display: 'flex', width: '400px', gap: '1rem' }}>
                         <input
@@ -207,17 +206,13 @@ const Shop = () => {
                 </div>
             </div>
 
-            {/* ERRORS */}
             {loading ? (
                 <div style={{ textAlign: 'center', color: 'white', padding: '2rem' }}>LOADING...</div>
             ) : error ? (
                 <div style={styles.errorMessage}>
                     <p>{error}</p>
                     {isRetrying && <p>Retrying...</p>}
-                    <button
-                        onClick={() => fetchProducts()}
-                        style={styles.retryButton}
-                    >
+                    <button onClick={fetchProducts} style={styles.retryButton}>
                         Retry Now
                     </button>
                 </div>
@@ -236,7 +231,7 @@ const Shop = () => {
                         >
                             <div style={{ height: '300px', overflow: 'hidden' }}>
                                 <img
-                                    src={product.images?.[0]}
+                                    src={secureImage(product.images?.[0])}
                                     alt={product.name}
                                     style={getImageStyle(i)}
                                     onError={(e) => (e.target.src = FALLBACK_IMAGE)}
