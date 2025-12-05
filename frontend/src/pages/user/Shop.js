@@ -1,3 +1,4 @@
+// Shop.js (Updated for Cloudinary + Auto-Retry)
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { productService } from '../../services/productService';
@@ -5,6 +6,8 @@ import { productService } from '../../services/productService';
 const Shop = () => {
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [isRetrying, setIsRetrying] = useState(false);  // FIX: New state to track auto-retry for subtle feedback
+    const [error, setError] = useState(null);  // Track fetch errors
     const [searchParams, setSearchParams] = useSearchParams();
     const [searchTerm, setSearchTerm] = useState('');
     const [hoveredProduct, setHoveredProduct] = useState(null);
@@ -19,11 +22,25 @@ const Shop = () => {
 
     const fetchProducts = async () => {
         setLoading(true);
+        setError(null);  // Reset error on retry
+        setIsRetrying(false);  // FIX: Reset retry state
         try {
             const response = await productService.getProducts({ category, search });
             setProducts(response.data);
-        } catch (error) {
-            console.error('Error fetching products:', error);
+        } catch (err) {
+            console.error('Error fetching products:', err);
+            if (err.code === 'ECONNABORTED') {
+                setError('Service is starting up—please wait a moment and retry.');
+                // FIX: Auto-retry once after 5s, but only if error matches (prevents loops)
+                setIsRetrying(true);
+                setTimeout(() => {
+                    if (error === 'Service is starting up—please wait a moment and retry.') {  // Check current error state
+                        fetchProducts();
+                    }
+                }, 5000);
+            } else {
+                setError('Failed to load products. Please try again.');
+            }
         } finally {
             setLoading(false);
         }
@@ -40,6 +57,9 @@ const Shop = () => {
     };
 
     const categories = ['All', 'Men', 'Women', 'Kids', 'Office', 'Accessories'];
+
+    // Fallback SVG data URI for broken images
+    const FALLBACK_IMAGE = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjBmMGYwIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg==';
 
     const styles = {
         container: {
@@ -236,6 +256,28 @@ const Shop = () => {
             fontSize: '1.3rem',
             marginBottom: '1rem',
             fontWeight: '300'
+        },
+        errorMessage: {  
+            textAlign: 'center',
+            padding: '2rem',
+            color: 'rgba(255,255,255,0.7)',
+            background: 'rgba(255,0,0,0.1)',
+            border: '1px solid rgba(255,0,0,0.3)',
+            borderRadius: '10px',
+            margin: '2rem 20px'
+        },
+        retryButton: {
+            ...styles.viewButton,
+            width: 'auto',
+            marginTop: '1rem',
+            padding: '12px 25px',
+            background: 'rgba(255,255,255,0.1)',
+            borderColor: 'rgba(255,255,255,0.5)'
+        },
+        retryingText: {  // FIX: New style for auto-retry feedback
+            color: 'rgba(255,255,255,0.5)',
+            fontSize: '0.9rem',
+            marginTop: '0.5rem'
         }
     };
 
@@ -370,6 +412,17 @@ const Shop = () => {
 
             {loading ? (
                 <div style={styles.loading}>LOADING PRODUCTS...</div>
+            ) : error ? (
+                <div style={styles.errorMessage}>
+                    <p>{error}</p>
+                    {isRetrying && <p style={styles.retryingText}>Retrying in a moment...</p>}  {/* FIX: Show subtle retry feedback */}
+                    <button 
+                        onClick={() => { setError(null); fetchProducts(); }}  // FIX: Clear error before retry to avoid loops
+                        style={styles.retryButton}
+                    >
+                        Retry Now
+                    </button>
+                </div>
             ) : products.length === 0 ? (
                 <div style={styles.noProducts}>
                     <h3 style={styles.noProductsTitle}>NO PRODUCTS FOUND</h3>
@@ -387,11 +440,13 @@ const Shop = () => {
                             <div style={styles.productImage}>
                                 {product.images && product.images.length > 0 ? (
                                     <img
-                                        src={`https://tfs-clothing.onrender.com/uploads/${product.images[0]}`}
+                                        src={product.images[0]}  // Use full Cloudinary URL from API
                                         alt={product.name}
                                         style={getImageStyle(index)}
+                                        loading="lazy"  // For performance
                                         onError={(e) => {
-                                            e.target.style.display = 'none';
+                                            e.target.src = FALLBACK_IMAGE;  // Set fallback SVG
+                                            e.target.style.display = 'block';  // Keep visible
                                         }}
                                     />
                                 ) : (
