@@ -1,3 +1,7 @@
+/*<<<<<<< Updated upstream
+=======*/
+// productService.js (Further Updated for Enhanced Retries)
+//>>>>>>> Stashed changes
 import axios from 'axios';
 
 const API_URL = 'https://tfs-clothing.onrender.com/api/products';
@@ -7,6 +11,27 @@ const getAuthToken = () => {
     return localStorage.getItem('token') || localStorage.getItem('authToken');
 };
 
+//Updated upstream
+
+// Helper function for retry with exponential backoff
+// FIX: Increased retries to 5; added jitter (random + up to 1s) to backoff; added logging for debug.
+const retryRequest = async (fn, retries = 5, baseDelay = 1000) => {
+    for (let i = 0; i < retries; i++) {
+        try {
+            return await fn();
+        } catch (error) {
+            if (error.code === 'ECONNABORTED' && i < retries - 1) {
+                const delay = baseDelay * Math.pow(2, i) + Math.random() * 1000; // Jitter for thundering herd prevention
+                console.log(`Retry ${i + 1}/${retries} in ${Math.round(delay)}ms...`); // FIX: Debug log for retries
+                await new Promise(resolve => setTimeout(resolve, delay));
+                continue;
+            }
+            throw error;
+        }
+    }
+};
+
+//>>>>>>> Stashed changes
 // Create axios instance with default config
 const api = axios.create({
     baseURL: API_URL,
