@@ -1,5 +1,11 @@
 const Product = require('../models/Product');
 
+// Helper to convert image filenames to full URLs
+const mapImagesToURL = (req, images) => {
+    const host = req.protocol + '://' + req.get('host');
+    return images.map(img => `${host}/uploads/${img}`);
+};
+
 // Get all products
 const getProducts = async (req, res) => {
     try {
@@ -9,7 +15,14 @@ const getProducts = async (req, res) => {
         if (search) query.name = { $regex: search, $options: 'i' };
 
         const products = await Product.find(query);
-        res.json(products);
+
+        // Map images to full URLs
+        const productsWithFullImages = products.map(p => ({
+            ...p.toObject(),
+            images: mapImagesToURL(req, p.images || [])
+        }));
+
+        res.json(productsWithFullImages);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -22,20 +35,22 @@ const getProductById = async (req, res) => {
         if (!product) {
             return res.status(404).json({ message: 'Product not found' });
         }
-        res.json(product);
+
+        // Map images to full URLs
+        const productWithFullImages = {
+            ...product.toObject(),
+            images: mapImagesToURL(req, product.images || [])
+        };
+
+        res.json(productWithFullImages);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
 };
 
-// Create product - FIXED VERSION
+// Create product
 const createProduct = async (req, res) => {
     try {
-        console.log('=== CREATE PRODUCT REQUEST ===');
-        console.log('Request body:', req.body);
-        console.log('Request files:', req.files);
-        
-        // Validate required fields
         const { name, description, price, category, stock } = req.body;
         if (!name || !description || !price || !category || !stock) {
             return res.status(400).json({ 
@@ -44,63 +59,47 @@ const createProduct = async (req, res) => {
         }
 
         let productData = {
-            name: req.body.name,
-            description: req.body.description,
-            price: parseFloat(req.body.price),
-            category: req.body.category,
-            stock: parseInt(req.body.stock),
-            sizes: []
+            name,
+            description,
+            price: parseFloat(price),
+            category,
+            stock: parseInt(stock),
+            sizes: [],
+            images: []
         };
 
-        // Handle sizes if provided
         if (req.body.sizes) {
             try {
                 productData.sizes = typeof req.body.sizes === 'string' 
                     ? JSON.parse(req.body.sizes) 
                     : req.body.sizes;
             } catch (error) {
-                console.error('Error parsing sizes:', error);
                 productData.sizes = [];
             }
         }
 
-        // Handle images if uploaded
         if (req.files && req.files.length > 0) {
             productData.images = req.files.map(file => file.filename);
         }
 
-        console.log('Final product data:', productData);
-
         const product = new Product(productData);
         await product.save();
-        
-        console.log('Product created successfully:', product);
-        res.status(201).json(product);
+
+        // Return product with full image URLs
+        res.status(201).json({
+            ...product.toObject(),
+            images: mapImagesToURL(req, product.images || [])
+        });
         
     } catch (error) {
-        console.error('Error creating product:', error);
-        res.status(500).json({ 
-            message: 'Error creating product',
-            error: error.message 
-        });
+        res.status(500).json({ message: error.message });
     }
 };
 
-// Update product - FIXED VERSION
+// Update product
 const updateProduct = async (req, res) => {
     try {
-        console.log('=== UPDATE PRODUCT REQUEST ===');
-        console.log('Product ID:', req.params.id);
-        console.log('Request body:', req.body);
-        console.log('Request files:', req.files);
-        
         const productId = req.params.id;
-        
-        if (!productId) {
-            return res.status(400).json({ message: 'Product ID is required' });
-        }
-
-        // Check if product exists
         const existingProduct = await Product.findById(productId);
         if (!existingProduct) {
             return res.status(404).json({ message: 'Product not found' });
@@ -108,60 +107,43 @@ const updateProduct = async (req, res) => {
 
         let updateData = {};
 
-        // Update only provided fields
         if (req.body.name) updateData.name = req.body.name;
         if (req.body.description) updateData.description = req.body.description;
         if (req.body.price) updateData.price = parseFloat(req.body.price);
         if (req.body.category) updateData.category = req.body.category;
         if (req.body.stock) updateData.stock = parseInt(req.body.stock);
 
-        // Handle sizes
         if (req.body.sizes) {
             try {
                 updateData.sizes = typeof req.body.sizes === 'string' 
                     ? JSON.parse(req.body.sizes) 
                     : req.body.sizes;
-            } catch (error) {
-                console.error('Error parsing sizes:', error);
+            } catch {
                 updateData.sizes = existingProduct.sizes;
             }
         } else {
             updateData.sizes = existingProduct.sizes;
         }
 
-        // Handle images
         if (req.files && req.files.length > 0) {
             updateData.images = req.files.map(file => file.filename);
         } else {
-            // Keep existing images if no new images uploaded
             updateData.images = existingProduct.images;
         }
 
-        console.log('Final update data:', updateData);
-
-        // Update product
         const updatedProduct = await Product.findByIdAndUpdate(
             productId,
             updateData,
-            { 
-                new: true,
-                runValidators: true
-            }
+            { new: true, runValidators: true }
         );
 
-        if (!updatedProduct) {
-            return res.status(404).json({ message: 'Product not found after update' });
-        }
-
-        console.log('Product updated successfully:', updatedProduct);
-        res.json(updatedProduct);
+        res.json({
+            ...updatedProduct.toObject(),
+            images: mapImagesToURL(req, updatedProduct.images || [])
+        });
 
     } catch (error) {
-        console.error('Error updating product:', error);
-        res.status(500).json({ 
-            message: 'Error updating product',
-            error: error.message
-        });
+        res.status(500).json({ message: error.message });
     }
 };
 
