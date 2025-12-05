@@ -1,3 +1,4 @@
+// Shop.js (Updated)
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { productService } from '../../services/productService';
@@ -5,6 +6,7 @@ import { productService } from '../../services/productService';
 const Shop = () => {
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);  // New: Track fetch errors
     const [searchParams, setSearchParams] = useSearchParams();
     const [searchTerm, setSearchTerm] = useState('');
     const [hoveredProduct, setHoveredProduct] = useState(null);
@@ -19,11 +21,17 @@ const Shop = () => {
 
     const fetchProducts = async () => {
         setLoading(true);
+        setError(null);  // Reset error on retry
         try {
             const response = await productService.getProducts({ category, search });
             setProducts(response.data);
-        } catch (error) {
-            console.error('Error fetching products:', error);
+        } catch (err) {
+            console.error('Error fetching products:', err);
+            if (err.code === 'ECONNABORTED') {
+                setError('Service is starting up—please wait a moment and retry.');
+            } else {
+                setError('Failed to load products. Please try again.');
+            }
         } finally {
             setLoading(false);
         }
@@ -236,6 +244,23 @@ const Shop = () => {
             fontSize: '1.3rem',
             marginBottom: '1rem',
             fontWeight: '300'
+        },
+        errorMessage: {  // New: Error display styles
+            textAlign: 'center',
+            padding: '2rem',
+            color: 'rgba(255,255,255,0.7)',
+            background: 'rgba(255,0,0,0.1)',
+            border: '1px solid rgba(255,0,0,0.3)',
+            borderRadius: '10px',
+            margin: '2rem 20px'
+        },
+        retryButton: {
+            ...styles.viewButton,
+            width: 'auto',
+            marginTop: '1rem',
+            padding: '12px 25px',
+            background: 'rgba(255,255,255,0.1)',
+            borderColor: 'rgba(255,255,255,0.5)'
         }
     };
 
@@ -370,6 +395,16 @@ const Shop = () => {
 
             {loading ? (
                 <div style={styles.loading}>LOADING PRODUCTS...</div>
+            ) : error ? (
+                <div style={styles.errorMessage}>
+                    <p>{error}</p>
+                    <button 
+                        onClick={fetchProducts} 
+                        style={styles.retryButton}
+                    >
+                        Retry
+                    </button>
+                </div>
             ) : products.length === 0 ? (
                 <div style={styles.noProducts}>
                     <h3 style={styles.noProductsTitle}>NO PRODUCTS FOUND</h3>

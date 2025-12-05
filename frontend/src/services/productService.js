@@ -1,3 +1,4 @@
+// productService.js (Updated)
 import axios from 'axios';
 
 const API_URL = 'https://tfs-clothing.onrender.com/api/products';
@@ -7,10 +8,25 @@ const getAuthToken = () => {
     return localStorage.getItem('token') || localStorage.getItem('authToken');
 };
 
+// Helper function for retry with exponential backoff
+const retryRequest = async (fn, retries = 3, delay = 1000) => {
+    for (let i = 0; i < retries; i++) {
+        try {
+            return await fn();
+        } catch (error) {
+            if (error.code === 'ECONNABORTED' && i < retries - 1) {
+                await new Promise(resolve => setTimeout(resolve, delay * Math.pow(2, i)));
+                continue;
+            }
+            throw error;
+        }
+    }
+};
+
 // Create axios instance with default config
 const api = axios.create({
     baseURL: API_URL,
-    timeout: 10000,
+    timeout: 30000,  // Increased to 30s for Render cold starts
 });
 
 // Add request interceptor to include auth token
@@ -42,8 +58,7 @@ api.interceptors.response.use(
 const productService = {
     getProducts: async (params = {}) => {
         try {
-            const response = await api.get('/', { params });
-            return response;
+            return await retryRequest(() => api.get('/', { params }));
         } catch (error) {
             console.error('Error fetching products:', error);
             throw error;
