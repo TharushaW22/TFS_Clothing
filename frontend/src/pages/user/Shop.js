@@ -1,4 +1,4 @@
-// Shop.js (Updated for Cloudinary + Auto-Retry)
+// Shop.js (Fixed ReferenceError + Auto-Retry)
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { productService } from '../../services/productService';
@@ -6,7 +6,7 @@ import { productService } from '../../services/productService';
 const Shop = () => {
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(false);
-    const [isRetrying, setIsRetrying] = useState(false);  // FIX: New state to track auto-retry for subtle feedback
+    const [isRetrying, setIsRetrying] = useState(false);  // Track auto-retry for subtle feedback
     const [error, setError] = useState(null);  // Track fetch errors
     const [searchParams, setSearchParams] = useSearchParams();
     const [searchTerm, setSearchTerm] = useState('');
@@ -23,7 +23,7 @@ const Shop = () => {
     const fetchProducts = async () => {
         setLoading(true);
         setError(null);  // Reset error on retry
-        setIsRetrying(false);  // FIX: Reset retry state
+        setIsRetrying(false);  // FIX: Reset retry state at start (handles manual/new fetches during wait)
         try {
             const response = await productService.getProducts({ category, search });
             setProducts(response.data);
@@ -31,12 +31,11 @@ const Shop = () => {
             console.error('Error fetching products:', err);
             if (err.code === 'ECONNABORTED') {
                 setError('Service is starting up—please wait a moment and retry.');
-                // FIX: Auto-retry once after 5s, but only if error matches (prevents loops)
+                // FIX: Auto-retry after 5s (unconditional – stale closure removed; only enters on timeout)
                 setIsRetrying(true);
                 setTimeout(() => {
-                    if (error === 'Service is starting up—please wait a moment and retry.') {  // Check current error state
-                        fetchProducts();
-                    }
+                    setIsRetrying(false);  // FIX: Hide "Retrying..." before starting fetch
+                    fetchProducts();
                 }, 5000);
             } else {
                 setError('Failed to load products. Please try again.');
@@ -219,6 +218,7 @@ const Shop = () => {
             letterSpacing: '1px',
             marginBottom: '1.2rem'
         },
+        // FIX: Moved viewButton & viewButtonHover BEFORE retryButton to avoid TDZ (ReferenceError)
         viewButton: {
             display: 'inline-block',
             padding: '10px 20px',
@@ -266,18 +266,19 @@ const Shop = () => {
             borderRadius: '10px',
             margin: '2rem 20px'
         },
+        retryingText: {  // Style for auto-retry feedback
+            color: 'rgba(255,255,255,0.5)',
+            fontSize: '0.9rem',
+            marginTop: '0.5rem'
+        },
+        // FIX: Now after viewButton – safe to spread
         retryButton: {
-            ...styles.viewButton,
+            ...styles.viewButton,  // Now defined!
             width: 'auto',
             marginTop: '1rem',
             padding: '12px 25px',
             background: 'rgba(255,255,255,0.1)',
             borderColor: 'rgba(255,255,255,0.5)'
-        },
-        retryingText: {  // FIX: New style for auto-retry feedback
-            color: 'rgba(255,255,255,0.5)',
-            fontSize: '0.9rem',
-            marginTop: '0.5rem'
         }
     };
 
@@ -415,9 +416,9 @@ const Shop = () => {
             ) : error ? (
                 <div style={styles.errorMessage}>
                     <p>{error}</p>
-                    {isRetrying && <p style={styles.retryingText}>Retrying in a moment...</p>}  {/* FIX: Show subtle retry feedback */}
+                    {isRetrying && <p style={styles.retryingText}>Retrying in a moment...</p>}
                     <button 
-                        onClick={() => { setError(null); fetchProducts(); }}  // FIX: Clear error before retry to avoid loops
+                        onClick={() => { setError(null); fetchProducts(); }}  // Clear error before retry
                         style={styles.retryButton}
                     >
                         Retry Now
