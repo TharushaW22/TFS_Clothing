@@ -1,4 +1,4 @@
-// Shop.js (Updated for Cloudinary)
+// Shop.js (Updated for Cloudinary + Auto-Retry)
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { productService } from '../../services/productService';
@@ -6,7 +6,8 @@ import { productService } from '../../services/productService';
 const Shop = () => {
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);  // New: Track fetch errors
+    const [isRetrying, setIsRetrying] = useState(false);  // FIX: New state to track auto-retry for subtle feedback
+    const [error, setError] = useState(null);  // Track fetch errors
     const [searchParams, setSearchParams] = useSearchParams();
     const [searchTerm, setSearchTerm] = useState('');
     const [hoveredProduct, setHoveredProduct] = useState(null);
@@ -22,6 +23,7 @@ const Shop = () => {
     const fetchProducts = async () => {
         setLoading(true);
         setError(null);  // Reset error on retry
+        setIsRetrying(false);  // FIX: Reset retry state
         try {
             const response = await productService.getProducts({ category, search });
             setProducts(response.data);
@@ -29,6 +31,13 @@ const Shop = () => {
             console.error('Error fetching products:', err);
             if (err.code === 'ECONNABORTED') {
                 setError('Service is starting up—please wait a moment and retry.');
+                // FIX: Auto-retry once after 5s, but only if error matches (prevents loops)
+                setIsRetrying(true);
+                setTimeout(() => {
+                    if (error === 'Service is starting up—please wait a moment and retry.') {  // Check current error state
+                        fetchProducts();
+                    }
+                }, 5000);
             } else {
                 setError('Failed to load products. Please try again.');
             }
@@ -49,7 +58,7 @@ const Shop = () => {
 
     const categories = ['All', 'Men', 'Women', 'Kids', 'Office', 'Accessories'];
 
-    // NEW: Fallback SVG data URI for broken images (your existing placeholder)
+    // Fallback SVG data URI for broken images
     const FALLBACK_IMAGE = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjBmMGYwIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg==';
 
     const styles = {
@@ -248,7 +257,7 @@ const Shop = () => {
             marginBottom: '1rem',
             fontWeight: '300'
         },
-        errorMessage: {  // New: Error display styles
+        errorMessage: {  
             textAlign: 'center',
             padding: '2rem',
             color: 'rgba(255,255,255,0.7)',
@@ -264,6 +273,11 @@ const Shop = () => {
             padding: '12px 25px',
             background: 'rgba(255,255,255,0.1)',
             borderColor: 'rgba(255,255,255,0.5)'
+        },
+        retryingText: {  // FIX: New style for auto-retry feedback
+            color: 'rgba(255,255,255,0.5)',
+            fontSize: '0.9rem',
+            marginTop: '0.5rem'
         }
     };
 
@@ -401,11 +415,12 @@ const Shop = () => {
             ) : error ? (
                 <div style={styles.errorMessage}>
                     <p>{error}</p>
+                    {isRetrying && <p style={styles.retryingText}>Retrying in a moment...</p>}  {/* FIX: Show subtle retry feedback */}
                     <button 
-                        onClick={fetchProducts} 
+                        onClick={() => { setError(null); fetchProducts(); }}  // FIX: Clear error before retry to avoid loops
                         style={styles.retryButton}
                     >
-                        Retry
+                        Retry Now
                     </button>
                 </div>
             ) : products.length === 0 ? (
@@ -425,13 +440,13 @@ const Shop = () => {
                             <div style={styles.productImage}>
                                 {product.images && product.images.length > 0 ? (
                                     <img
-                                        src={product.images[0]}  // UPDATED: Use full Cloudinary URL from API
+                                        src={product.images[0]}  // Use full Cloudinary URL from API
                                         alt={product.name}
                                         style={getImageStyle(index)}
-                                        loading="lazy"  // NEW: For performance
+                                        loading="lazy"  // For performance
                                         onError={(e) => {
-                                            e.target.src = FALLBACK_IMAGE;  // UPDATED: Set fallback SVG instead of hiding
-                                            e.target.style.display = 'block';  // Keep visible with fallback
+                                            e.target.src = FALLBACK_IMAGE;  // Set fallback SVG
+                                            e.target.style.display = 'block';  // Keep visible
                                         }}
                                     />
                                 ) : (
