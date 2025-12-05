@@ -35,7 +35,7 @@ const retryRequest = async (fn, retries = 5, baseDelay = 1000) => {
 // Create axios instance with default config
 const api = axios.create({
     baseURL: API_URL,
-    timeout: 10000,
+    timeout: 30000,
 });
 
 // Add request interceptor to include auth token
